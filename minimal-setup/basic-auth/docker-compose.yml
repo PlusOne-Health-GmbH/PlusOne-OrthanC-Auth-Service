@@ -1,29 +1,32 @@
+# SPDX-FileCopyrightText: 2022 - 2025 Orthanc Team SRL <info@orthanc.team>
+#
+# SPDX-License-Identifier: CC0-1.0
+
 version: "3"
 services:
 
   nginx:
     image: orthancteam/orthanc-nginx:25.2.1
-    depends_on:
-      - orthanc
-      - orthanc-auth-service
-      - orthanc-for-shares
+    depends_on: [orthanc, orthanc-auth-service, orthanc-for-shares]
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:8080:80"
+    ports: ["80:80"]
+# if setting ENABLE_HTTPS: "true" env var, uncomment the following 4 lines and comment the line with 'ports: ["80:80"]'
+#    ports: ["443:443"]
+#    volumes:
+#      - /.../crt.pem:/etc/nginx/tls/crt.pem
+#      - /.../key.pem:/etc/nginx/tls/key.pem
     environment:
       ENABLE_ORTHANC: "true"
       ENABLE_ORTHANC_FOR_SHARES: "true"
       ENABLE_ORTHANC_TOKEN_SERVICE: "false"
       ENABLE_HTTPS: "false"
       ENABLE_OHIF: "true"
-      BASE_HREF: "/orthanc/"
 
   orthanc:
     image: orthancteam/orthanc:25.4.2
     volumes:
       - orthanc-storage:/var/lib/orthanc/db
-    depends_on:
-      - orthanc-db
+    depends_on: [orthanc-db]
     restart: unless-stopped
     environment:
       STONE_WEB_VIEWER_PLUGIN_ENABLED: "true"
@@ -40,29 +43,31 @@ services:
               "DefaultShareDuration": 0,
               "ShareDurations": [0, 7, 15, 30, 90, 365],
               "EnableOpenInOhifViewer3": true,
-              "OhifViewer3PublicRoot": "${OHIF_VIEWER_PUBLIC_ROOT}"
+              "OhifViewer3PublicRoot": "http://localhost/ohif/"
             },
-            "Tokens": {
+            "Tokens" : {
               "ShareType": "stone-viewer-publication"
             }
           },
           "AuthenticationEnabled": true,
           "RegisteredUsers": {
-            "${ORTHANC_ADMIN_USER}": "${ORTHANC_ADMIN_PASS}"
+            "admin": "change-me"
           },
-          "Authorization": {
+          "Authorization": {  // the auth-plugin is used only to generate tokens when sharing a study
+            //"WebServiceRootUrl": "http://orthanc-auth-service:8000/",
             "WebServiceTokenCreationBaseUrl": "http://orthanc-auth-service:8000/tokens/",
             "WebServiceUsername": "share-user",
-            "WebServicePassword": "${ORTHANC_SERVICE_PASSWORD}"
+            "WebServicePassword": "change-me"
+            //"CheckedLevel": "studies"
           }
+        
         }
 
   orthanc-for-shares:
     image: orthancteam/orthanc:25.4.2
     volumes:
       - orthanc-storage:/var/lib/orthanc/db
-    depends_on:
-      - orthanc-db
+    depends_on: [orthanc-db]
     restart: unless-stopped
     environment:
       STONE_WEB_VIEWER_PLUGIN_ENABLED: "true"
@@ -79,53 +84,53 @@ services:
               "DefaultShareDuration": 0,
               "ShareDurations": [0, 7, 15, 30, 90, 365]
             },
-            "Tokens": {
+            "Tokens" : {
               "ShareType": "stone-viewer-publication"
             }
           },
-          "AuthenticationEnabled": false,
+          "AuthenticationEnabled": false,     // because it is handled by the authorization plugin
           "Authorization": {
             "WebServiceRootUrl": "http://orthanc-auth-service:8000/",
             "WebServiceUsername": "share-user",
-            "WebServicePassword": "${ORTHANC_SERVICE_PASSWORD}",
-            "StandardConfigurations": [
+            "WebServicePassword": "change-me",
+            "StandardConfigurations" : [
               "osimis-web-viewer",
               "stone-webviewer",
-              "orthanc-explorer-2"
+              "orthanc-explorer-2"    // required for the token-landing page
             ],
             "CheckedLevel": "studies"
           },
           "DicomWeb": {
             "Enable": true,
             "PublicRoot": "/orthanc/dicom-web/"
-          }
+          }        
         }
 
   orthanc-auth-service:
     image: orthancteam/orthanc-auth-service:25.2.1
     restart: unless-stopped
     environment:
-      SECRET_KEY: "${ORTHANC_SERVICE_PASSWORD}"
-      PUBLIC_ORTHANC_ROOT: "${PUBLIC_ORTHANC_ROOT}/shares/"
-      PUBLIC_LANDING_ROOT: "${PUBLIC_LANDING_ROOT}"
-      PUBLIC_OHIF_ROOT: "${OHIF_VIEWER_PUBLIC_ROOT}"
+      SECRET_KEY: "change-me-I-am-a-secret-key"
+      #PERMISSIONS_FILE_PATH: "path_to_the file"
+      PUBLIC_ORTHANC_ROOT: "http://localhost/shares/"
+      PUBLIC_LANDING_ROOT: "http://localhost/shares/ui/app/token-landing.html"
+      PUBLIC_OHIF_ROOT: "http://localhost/ohif/"
       USERS: |
         {
-          "share-user": "${ORTHANC_SERVICE_PASSWORD}"
+          "share-user": "change-me"
         }
 
   ohif:
     image: orthancteam/ohif-v3:25.2.1
+#  uncomment if you want to customize ohif configuration
+#    volumes:
+#      - ./ohif-app-config.js:/usr/share/nginx/html/app-config.js
     restart: unless-stopped
-    # Uncomment to override OHIF config:
-    # volumes:
-    #   - ./ohif-app-config.js:/usr/share/nginx/html/app-config.js
 
   orthanc-db:
     image: postgres:15
     restart: unless-stopped
-    volumes:
-      - orthanc-db:/var/lib/postgresql/data
+    volumes: ["orthanc-db:/var/lib/postgresql/data"]
     environment:
       POSTGRES_HOST_AUTH_METHOD: "trust"
 
