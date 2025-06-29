@@ -9,7 +9,7 @@ services:
     image: orthancteam/orthanc-nginx:25.2.1
     depends_on: [orthanc, orthanc-auth-service, orthanc-for-shares]
     restart: unless-stopped
-    ports: ["80:80"]
+    ports: ["8080:80"]
 # if setting ENABLE_HTTPS: "true" env var, uncomment the following 4 lines and comment the line with 'ports: ["80:80"]'
 #    ports: ["443:443"]
 #    volumes:
@@ -21,6 +21,7 @@ services:
       ENABLE_ORTHANC_TOKEN_SERVICE: "false"
       ENABLE_HTTPS: "false"
       ENABLE_OHIF: "true"
+      BASE_HREF: "/orthanc/" 
 
   orthanc:
     image: orthancteam/orthanc:25.4.2
