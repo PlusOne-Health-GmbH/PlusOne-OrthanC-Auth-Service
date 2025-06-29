@@ -10,6 +10,11 @@ services:
     restart: unless-stopped
     ports:
       - "8080:80"
+# if setting ENABLE_HTTPS: "true" env var, uncomment the following 4 lines and comment the line with 'ports: ["80:80"]'
+#    ports: ["443:443"]
+#    volumes:
+#      - /.../crt.pem:/etc/nginx/tls/crt.pem
+#      - /.../key.pem:/etc/nginx/tls/key.pem
     environment:
       ENABLE_ORTHANC: "true"
       ENABLE_ORTHANC_FOR_SHARES: "true"
@@ -49,10 +54,12 @@ services:
           "RegisteredUsers": {
             "${ORTHANC_ADMIN_USER}": "${ORTHANC_ADMIN_PASS}"
           },
-          "Authorization": {
+          "Authorization": {  // the auth-plugin is used only to generate tokens when sharing a study
+            //"WebServiceRootUrl": "http://orthanc-auth-service:8000/",
             "WebServiceTokenCreationBaseUrl": "http://orthanc-auth-service:8000/tokens/",
             "WebServiceUsername": "share-user",
             "WebServicePassword": "${ORTHANC_SERVICE_PASSWORD}"
+            //"CheckedLevel": "studies"
           }
         }
 
@@ -82,7 +89,7 @@ services:
               "ShareType": "stone-viewer-publication"
             }
           },
-          "AuthenticationEnabled": false,
+          "AuthenticationEnabled": false,     // because it is handled by the authorization plugin
           "Authorization": {
             "WebServiceRootUrl": "http://orthanc-auth-service:8000/",
             "WebServiceUsername": "share-user",
@@ -90,7 +97,7 @@ services:
             "StandardConfigurations": [
               "osimis-web-viewer",
               "stone-webviewer",
-              "orthanc-explorer-2"
+              "orthanc-explorer-2"     // required for the token-landing page
             ],
             "CheckedLevel": "studies"
           },
@@ -105,6 +112,7 @@ services:
     restart: unless-stopped
     environment:
       SECRET_KEY: "${ORTHANC_SERVICE_PASSWORD}"
+      #PERMISSIONS_FILE_PATH: "path_to_the file"
       PUBLIC_ORTHANC_ROOT: "${PUBLIC_ORTHANC_ROOT}/shares/"
       PUBLIC_LANDING_ROOT: "${PUBLIC_LANDING_ROOT}"
       PUBLIC_OHIF_ROOT: "${OHIF_VIEWER_PUBLIC_ROOT}"
