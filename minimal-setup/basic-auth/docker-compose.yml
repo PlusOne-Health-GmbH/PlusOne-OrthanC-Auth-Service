@@ -16,6 +16,7 @@ services:
       ENABLE_ORTHANC_TOKEN_SERVICE: "false"
       ENABLE_HTTPS: "false"
       ENABLE_OHIF: "true"
+      BASE_HREF: "/orthanc/"
 
   orthanc:
     image: orthancteam/orthanc:25.4.2
