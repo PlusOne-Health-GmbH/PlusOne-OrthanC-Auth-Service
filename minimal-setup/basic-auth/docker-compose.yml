@@ -9,7 +9,7 @@ services:
       - orthanc-for-shares
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "127.0.0.1:8080:80"
     environment:
       ENABLE_ORTHANC: "true"
       ENABLE_ORTHANC_FOR_SHARES: "true"
